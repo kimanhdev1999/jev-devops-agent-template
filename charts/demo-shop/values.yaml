@@ -1,0 +1,23 @@
+# Shown in logs and on the pod template, so v1 -> v2 creates a new ReplicaSet
+# that `rollout undo` can revert.
+version: v1
+
+# The incident switch. true = every order fails with "ERROR db connection refused".
+breakDb: false
+
+replicaCount: 2
+
+# Public ECR mirror of the official image: no Docker Hub rate limits, no build.
+image:
+  repository: public.ecr.aws/docker/library/python
+  tag: "3.12-slim"
+
+# Synthetic orders per second per pod (the app drives its own traffic).
+ordersPerSecond: 1
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 48Mi
+  limits:
+    memory: 96Mi
