@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "lambda_assume" {
 
 # ---------------------------------------------------------------------------
 # Analyzer: READ-ONLY. Logs, metrics, cluster read (via access entry), secrets,
-# and optionally Bedrock. It cannot change anything in the cluster.
+# and the config secret (Claude API key). It cannot change anything in the cluster.
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "analyzer" {
   name               = "${var.name}-analyzer"
@@ -57,17 +57,9 @@ data "aws_iam_policy_document" "analyzer" {
   statement {
     sid       = "ReadIntegrationSecrets"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [for s in aws_secretsmanager_secret.this : s.arn]
+    resources = [aws_secretsmanager_secret.config.arn]
   }
 
-  statement {
-    sid = "ClaudeOnBedrockMantle"
-    # Claude in Amazon Bedrock (Messages API on bedrock-mantle). The docs scope
-    # this action to model ARNs; the ARN format isn't published alongside, so
-    # it's "*" for the demo. Tighten once you see the ARN in a CloudTrail event.
-    actions   = ["bedrock-mantle:CreateInference"]
-    resources = ["*"]
-  }
 }
 
 resource "aws_iam_role_policy" "analyzer" {
@@ -102,7 +94,7 @@ data "aws_iam_policy_document" "executor" {
   statement {
     sid       = "ReadSlackAndJiraSecrets"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.this["slack"].arn, aws_secretsmanager_secret.this["jira"].arn]
+    resources = [aws_secretsmanager_secret.config.arn]
   }
 }
 

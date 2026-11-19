@@ -23,8 +23,8 @@ output "app_log_group" {
   value = aws_cloudwatch_log_group.application.name
 }
 
-output "secret_arns" {
-  value = { for k, s in aws_secretsmanager_secret.this : k => s.arn }
+output "config_secret_arn" {
+  value = aws_secretsmanager_secret.config.arn
 }
 
 output "analyzer_function" {

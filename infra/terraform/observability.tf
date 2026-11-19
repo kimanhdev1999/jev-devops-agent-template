@@ -20,6 +20,9 @@ resource "aws_cloudwatch_log_metric_filter" "db_errors" {
     name      = "DbConnectionErrors"
     namespace = local.metric_namespace
     value     = "1"
+    # 0 for every non-matching (healthy) line, so the alarm sees real zeros and
+    # returns to OK after a fix; with no datapoints at all it stays in ALARM.
+    default_value = 0
   }
 }
 
@@ -33,6 +36,9 @@ resource "aws_cloudwatch_log_metric_filter" "http_5xx" {
     name      = "Http5xx"
     namespace = local.metric_namespace
     value     = "1"
+    # 0 for every non-matching (healthy) line, so the alarm sees real zeros and
+    # returns to OK after a fix; with no datapoints at all it stays in ALARM.
+    default_value = 0
   }
 }
 
