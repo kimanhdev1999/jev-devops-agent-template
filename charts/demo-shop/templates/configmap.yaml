@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-app
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  app.py: |
+    """demo-shop: fake order service. Generates its own traffic so the demo
+    needs no load generator. With BREAK_DB=true every order fails."""
+    import os, random, sys, threading, time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    VERSION = os.environ.get("APP_VERSION", "v1")
+    BREAK_DB = os.environ.get("BREAK_DB", "false").lower() == "true"
+    RATE = float(os.environ.get("ORDERS_PER_SECOND", "1"))
+    POD = os.environ.get("HOSTNAME", "local")
+
+    # Fake PII on purpose: the analyzer must mask it before any model call.
+    CUSTOMERS = ["alice@example.com", "bob@example.org", "carol@example.net"]
+
+    def log(level, msg):
+        print(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {level} [{VERSION}] [{POD}] {msg}", flush=True)
+
+    def place_order():
+        order_id = random.randint(100000, 999999)
+        customer = random.choice(CUSTOMERS)
+        if BREAK_DB:
+            log("ERROR", f"db connection refused host=orders-db:5432 order={order_id} customer={customer} status=500")
+        else:
+            latency = random.randint(20, 90)
+            log("INFO", f"order placed order={order_id} customer={customer} latency_ms={latency} status=200")
+
+    def worker():
+        while True:
+            place_order()
+            time.sleep(1.0 / RATE)
+
+    class Health(BaseHTTPRequestHandler):
+        def do_GET(self):
+            # Liveness stays green even when broken: the bug is in the DB path,
+            # so Kubernetes happily completes the bad rollout (like real life).
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(f"ok {VERSION}\n".encode())
+
+        def log_message(self, *args):
+            pass
+
+    if __name__ == "__main__":
+        log("INFO", f"demo-shop starting version={VERSION} break_db={BREAK_DB}")
+        threading.Thread(target=worker, daemon=True).start()
+        ThreadingHTTPServer(("0.0.0.0", 8080), Health).serve_forever()

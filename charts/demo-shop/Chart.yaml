@@ -1,0 +1,6 @@
+apiVersion: v2
+name: demo-shop
+description: Tiny fake shop for the Jev incident demo. No image build - the app is a Python script in a ConfigMap.
+type: application
+version: 0.1.0
+appVersion: "v1"
