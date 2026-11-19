@@ -1,4 +1,4 @@
-"""Incident decision with Claude Haiku 5.5 on Amazon Bedrock.
+"""Incident decision with Claude Haiku 5.5 on the Claude API.
 
 Jev is on hold for now, so Haiku makes the decision Jev was going to make. It
 is kept Jev-shaped on purpose: one call, one narrow question, and a typed answer
@@ -21,13 +21,12 @@ import os
 from typing import Literal
 
 import anthropic
-from anthropic import AnthropicBedrockMantle
 from pydantic import BaseModel
 
 ROOT_CAUSES = ("bad_deploy", "db_outage", "oom", "image_pull", "traffic_spike", "unknown")
 RootCause = Literal["bad_deploy", "db_outage", "oom", "image_pull", "traffic_spike", "unknown"]
 
-DEFAULT_MODEL = "anthropic.claude-haiku-5-5"
+DEFAULT_MODEL = "claude-haiku-5-5"
 
 
 class IncidentDecision(BaseModel):
@@ -65,16 +64,17 @@ summary: 2-4 plain sentences for an on-call engineer: what is failing, since
 when, the likely cause, and what you suggest. Never include commands."""
 
 
-def _client(region: str | None = None) -> AnthropicBedrockMantle:
-    # Credentials come from the standard AWS chain (Lambda role, AWS_PROFILE, ...).
-    return AnthropicBedrockMantle(aws_region=region or os.environ.get("AWS_REGION"))
+def _client() -> anthropic.Anthropic:
+    # Reads ANTHROPIC_API_KEY. The analyzer Lambda passes its own client built
+    # from the config secret instead.
+    return anthropic.Anthropic()
 
 
 def decide(
     evidence_text: str,
     *,
     model: str | None = None,
-    client: AnthropicBedrockMantle | None = None,
+    client: anthropic.Anthropic | None = None,
 ) -> IncidentDecision | None:
     """Ask Haiku for a typed incident decision.
 
@@ -84,7 +84,7 @@ def decide(
     client = client or _client()
     try:
         response = client.messages.parse(
-            model=model or os.environ.get("BEDROCK_MODEL_ID", DEFAULT_MODEL),
+            model=model or os.environ.get("CLAUDE_MODEL", DEFAULT_MODEL),
             # Classification: effort low keeps thinking short; the cap leaves room
             # for thinking plus the JSON answer.
             max_tokens=4096,

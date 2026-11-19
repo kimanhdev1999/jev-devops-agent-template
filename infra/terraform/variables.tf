@@ -56,10 +56,10 @@ variable "alarm_error_threshold" {
   default     = 5
 }
 
-variable "bedrock_model_id" {
-  description = "Claude model on the Bedrock Mantle endpoint (Messages API). Haiku makes the incident decision and writes the Slack/Jira text. ap-south-1 only offers global routing for it."
+variable "claude_model" {
+  description = "Claude model on the Claude API (key in the config secret). Makes the incident decision and writes the Slack/Jira text."
   type        = string
-  default     = "anthropic.claude-haiku-5-5"
+  default     = "claude-haiku-5-5"
 }
 
 variable "min_confidence" {
@@ -72,4 +72,10 @@ variable "admin_principal_arns" {
   description = "Extra IAM principals (e.g. your SSO role) to give cluster-admin through EKS access entries. The identity running terraform is added automatically."
   type        = list(string)
   default     = []
+}
+
+variable "executor_reserved_concurrency" {
+  description = "Reserved concurrency for the executor. -1 = none (needed on accounts with the default 10-execution limit). Set 1 once the account limit is raised."
+  type        = number
+  default     = -1
 }

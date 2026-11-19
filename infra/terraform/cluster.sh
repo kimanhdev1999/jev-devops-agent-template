@@ -24,6 +24,7 @@ cluster_name() { terraform output -raw cluster_name 2>/dev/null || echo "jev-inc
 
 case "${1:-}" in
   up)
+    ../../scripts/build_lambdas.sh
     terraform apply -var enable_cluster=true
     eval "$(terraform output -raw kubeconfig_command)"
     kubectl get pods -A -l app.kubernetes.io/name=demo-shop
